@@ -18,10 +18,15 @@ class DeviceResponse(BaseModel):
     deployed_at: str = ""
 
 
+class SolutionResponse(BaseModel):
+    solution_name: str
+    devices: list[DeviceResponse]
+
+
 class LoginResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user_id: str
     name: str
     email: str
-    devices: list[DeviceResponse]
+    solutions: list[SolutionResponse]

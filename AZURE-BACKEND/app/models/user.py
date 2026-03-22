@@ -12,6 +12,11 @@ class Device(BaseModel):
     deployed_at: str = ""
 
 
+class Solution(BaseModel):
+    solution_name: str
+    devices: list[Device] = Field(default_factory=list)
+
+
 class User(BaseModel):
     model_config = ConfigDict(populate_by_name=True, extra="ignore")
 
@@ -20,8 +25,24 @@ class User(BaseModel):
     name: str
     email: str
     password_hash: str
+    solutions: list[Solution] = Field(default_factory=list)
     devices: list[Device] = Field(default_factory=list)
 
     @classmethod
     def from_mongo(cls, data: dict[str, Any]) -> "User":
         return cls.model_validate(data)
+
+    def get_solutions(self) -> list[Solution]:
+        if self.solutions:
+            return self.solutions
+        if self.devices:
+            return [Solution(solution_name="Default", devices=self.devices)]
+        return []
+
+    def get_all_devices(self) -> list[Device]:
+        if self.solutions:
+            devices: list[Device] = []
+            for solution in self.solutions:
+                devices.extend(solution.devices)
+            return devices
+        return self.devices

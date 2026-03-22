@@ -25,12 +25,18 @@ This API expects documents like:
   "name": "Amit Kumar",
   "email": "amit@example.com",
   "password_hash": "$2b$12$...",
-  "devices": [
+  "solutions": [
     {
-      "device_id": "device_GHI012",
-      "device_name": "Garage Sensor",
-      "device_type": "Sensors",
-      "is_active": true
+      "solution_name": "Vatavaran Monitor",
+      "devices": [
+        {
+          "device_id": "IFTHC1180000001",
+          "device_name": "Enviroment_Intel",
+          "device_type": "Sensors",
+          "is_active": true,
+          "deployed_at": "room1"
+        }
+      ]
     }
   ]
 }
@@ -63,18 +69,18 @@ Success response (`200`):
   "user_id": "U1003",
   "name": "Amit Kumar",
   "email": "amit@example.com",
-  "devices": [
+  "solutions": [
     {
-      "device_id": "device_GHI012",
-      "device_name": "Garage Sensor",
-      "device_type": "Sensors",
-      "is_active": true
-    },
-    {
-      "device_id": "device_JKL345",
-      "device_name": "Garden Sensor",
-      "device_type": "Actuators",
-      "is_active": true
+      "solution_name": "Vatavaran Monitor",
+      "devices": [
+        {
+          "device_id": "IFTHC1180000001",
+          "device_name": "Enviroment_Intel",
+          "device_type": "Sensors",
+          "is_active": true,
+          "deployed_at": "room1"
+        }
+      ]
     }
   ]
 }
@@ -276,11 +282,3 @@ curl -X GET https://$APP_NAME.azurewebsites.net/users/U1003/devices/data \
 
 
 
-
-# 1) Login API
-curl -X POST "https://fastapi-login-0319012745.azurewebsites.net/login" \
-  -H "Content-Type: application/json" \
-  -d '{"user_id":"ritesh_farms","password":"alpha1212"}'
-# 2) Devices Data API (replace <ACCESS_TOKEN> with token from login response)
-curl -X GET "https://fastapi-login-0319012745.azurewebsites.net/users/ritesh_farms/devices/data" \
-  -H "Authorization: Bearer <ACCESS_TOKEN>"
