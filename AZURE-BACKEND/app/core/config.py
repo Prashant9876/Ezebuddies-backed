@@ -15,7 +15,9 @@ class Settings:
     realtime_db_name: str = os.getenv("REALTIME_DB_NAME", "realtime_data")
     sop_db_name: str = os.getenv("SOP_DB_NAME", "User_Data")
     sop_collection_name: str = os.getenv("SOP_COLLECTION_NAME", "Crop_SOP")
-    planner_collection_name: str = os.getenv("PLANNER_COLLECTION_NAME", "planner")
+    planner_collection_name: str = os.getenv(
+        "PLANNER_COLLECTION_NAME", "user_vatavaran_planner"
+    )
     device_data_fetch_limit: int = int(os.getenv("DEVICE_DATA_FETCH_LIMIT", "100"))
     reset_password_collection: str = os.getenv(
         "RESET_PASSWORD_COLLECTION", "reset_password"
