@@ -1,74 +1,53 @@
-# FastAPI JWT Login API + Azure App Service (Free Plan)
+# FastAPI Backend (EZeBuddies)
 
-## Project structure
+## API Base
 
-```text
-app/
-  api/routes/auth.py
-  core/config.py
-  core/security.py
-  db/mongodb.py
-  models/user.py
-  schemas/auth.py
-  services/auth_service.py
-  main.py
+Set one base URL and reuse all curls:
+
+```bash
+API_BASE="https://api.ezebuddies.com"
 ```
 
-## MongoDB user document format
-
-This API expects documents like:
-
-```json
-{
-  "_id": "user03",
-  "user_id": "U1003",
-  "name": "Amit Kumar",
-  "email": "amit@example.com",
-  "password_hash": "$2b$12$...",
-  "solutions": [
-    {
-      "solution_name": "Vatavaran Monitor",
-      "devices": [
-        {
-          "device_id": "IFTHC1180000001",
-          "device_name": "Enviroment_Intel",
-          "device_type": "Sensors",
-          "is_active": true,
-          "deployed_at": "room1"
-        }
-      ]
-    }
-  ]
-}
-```
-
-## API endpoints
+## Endpoints
 
 - `GET /health`
 - `POST /login`
-- `GET /users/{user_id}/devices/data` (JWT protected)
+- `GET /users/{user_id}/devices/data` (JWT required)
+- `POST /planner` (JWT required)
+- `POST /change_relay_state` (JWT required)
+- `POST /Estop` (JWT required)
 - `POST /forgot-password`
-- `GET /reset-password?token=...` (HTML form)
-- `POST /reset-password` (HTML form submit)
+- `GET /reset-password?token=...`
+- `POST /reset-password`
 
-Request body for `/login`:
+## Full Curl Collection
 
-```json
-{
-  "user_id": "U1003",
-  "password": "plain-password"
-}
+### 1) Health
+
+```bash
+curl -X GET "$API_BASE/health"
 ```
 
-Success response (`200`):
+### 2) Login
+
+```bash
+curl -X POST "$API_BASE/login" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "Prakash_farms",
+    "password": "Pk@12345"
+  }'
+```
+
+Sample success response:
 
 ```json
 {
-  "access_token": "<jwt-token>",
+  "access_token": "<JWT_ACCESS_TOKEN>",
   "token_type": "bearer",
-  "user_id": "U1003",
-  "name": "Amit Kumar",
-  "email": "amit@example.com",
+  "user_id": "Prakash_farms",
+  "name": "Prashant Singh",
+  "email": "prashantkumar74887@gmail.com",
   "solutions": [
     {
       "solution_name": "Vatavaran Monitor",
@@ -86,196 +65,178 @@ Success response (`200`):
 }
 ```
 
-If user ID/password is wrong, API returns `401`.
-
-Forgot password request:
+### 3) Save token in shell variable
 
 ```bash
-curl -X POST http://127.0.0.1:8000/forgot-password \
+TOKEN=$(curl -sS -X POST "$API_BASE/login" \
   -H "Content-Type: application/json" \
-  -d '{"user_id":"ritesh_farms"}'
+  -d '{"user_id":"Prakash_farms","password":"Pk@12345"}' \
+  | python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])')
+echo "$TOKEN"
 ```
 
-or
+### 4) Get realtime device data
 
 ```bash
-curl -X POST http://127.0.0.1:8000/forgot-password \
+curl -X GET "$API_BASE/users/Prakash_farms/devices/data" \
+  -H "Authorization: Bearer $TOKEN"
+```
+
+### 5) Planner API
+
+`section` is the collection name inside `User_Data`.
+
+```bash
+curl -X POST "$API_BASE/planner" \
   -H "Content-Type: application/json" \
-  -d '{"email":"amit@example.com"}'
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "token_type": "bearer",
+    "user_id": "Prakash_farms",
+    "section": "user_vatavaran_planner"
+  }'
 ```
 
-This sends a reset email from company SMTP (`contact@ezebuddies.com`) with a one-time token link valid for 15 minutes.
+### 6) Change relay state (MQTT publish)
 
-Fetch all device data for logged-in user:
+Publishes to topic: `farm/Sub/{user_id}` with `CMD: "Act_State_Update"`.
 
 ```bash
-curl -X GET http://127.0.0.1:8000/users/U1003/devices/data \
-  -H "Authorization: Bearer <access_token>"
+curl -X POST "$API_BASE/change_relay_state" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "user_id": "Prakash_farms",
+    "device_id": "IFFNC1180000001",
+    "button_name": "fan1",
+    "state": "on"
+  }'
 ```
 
-Example response:
+Sample success response:
 
 ```json
 {
-  "user_id": "U1003",
-  "source_database": "realtime_data",
-  "source_collection": "U1003",
-  "total_records": 2,
-  "records": [
-    {
-      "_id": "69baf863806559e5ccb145fb",
-      "CO2": 802,
-      "Device_Id": "IFTHC1180000001",
-      "Etemp": 22.4,
-      "Humidity": 86,
-      "DN": "THC"
-    },
-    {
-      "_id": "69baf863806559e5ccb145fc",
-      "ac": "on",
-      "fan5": "on",
-      "DN": "AFC",
-      "Device_Id": "IFFNC1180000001"
-    }
-  ]
+  "success": true,
+  "message": "Relay state update published",
+  "topic": "farm/Sub/Prakash_farms",
+  "payload": {
+    "CMD": "Act_State_Update",
+    "user_id": "Prakash_farms",
+    "device_id": "IFFNC1180000001",
+    "button_name": "fan1",
+    "state": "on"
+  }
 }
 ```
 
-## Local run
+### 7) E-Stop (MQTT publish)
+
+Publishes to topic: `farm/Sub/{user_id}` with `CMD: "E_Stop"`.
 
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-export MONGO_URI="<your-mongodb-connection-string>"
-export APP_ENV="production"
-export LOGIN_DB_NAME="User_Data"
-export LOGIN_COLLECTION="user_login"
-export JWT_SECRET_KEY="use-a-strong-secret"
-export JWT_ALGORITHM="HS256"
-export JWT_EXPIRES_MINUTES="60"
-export JWT_ISSUER="device-login-api"
-export JWT_AUDIENCE="device-login-clients"
-export REALTIME_DB_NAME="realtime_data"
-export RESET_PASSWORD_COLLECTION="reset_password"
-export RESET_TOKEN_EXPIRY_MINUTES="15"
-export PASSWORD_RESET_BASE_URL="https://your-app.azurewebsites.net"
-export DEVICE_DATA_FETCH_LIMIT="100"
-export MONGO_SERVER_SELECTION_TIMEOUT_MS="5000"
-export MONGO_CONNECT_TIMEOUT_MS="10000"
-export MONGO_SOCKET_TIMEOUT_MS="10000"
-export CORS_ALLOWED_ORIGINS="https://your-frontend.example.com"
-export SMTP_HOST="smtp.your-provider.com"
-export SMTP_PORT="587"
-export SMTP_USERNAME="contact@ezebuddies.com"
-export SMTP_PASSWORD="<smtp-password>"
-export SMTP_FROM_EMAIL="contact@ezebuddies.com"
-export SMTP_USE_TLS="true"
-export BCRYPT_ROUNDS="10"
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-Test:
-
-```bash
-curl -X POST http://127.0.0.1:8000/login \
+curl -X POST "$API_BASE/Estop" \
   -H "Content-Type: application/json" \
-  -d '{"user_id":"U1003","password":"your-password"}'
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "user_id": "Prakash_farms",
+    "solution_name": "Vatavaran Monitor"
+  }'
 ```
 
-## Deploy to Azure App Service Free (F1)
+Sample success response:
 
-Prerequisites:
-- Azure CLI login (`az login`)
-- MongoDB URI (Atlas or other)
-
-Create Azure resources:
-
-```bash
-RG_NAME="fastapi-free-rg"
-LOCATION="centralindia"
-PLAN_NAME="fastapi-free-plan"
-APP_NAME="fastapi-login-<unique-name>"
-
-az group create --name $RG_NAME --location $LOCATION
-az appservice plan create --name $PLAN_NAME --resource-group $RG_NAME --sku F1 --is-linux
-az webapp create --resource-group $RG_NAME --plan $PLAN_NAME --name $APP_NAME --runtime "PYTHON|3.12"
+```json
+{
+  "success": true,
+  "message": "E-Stop command published",
+  "topic": "farm/Sub/Prakash_farms",
+  "payload": {
+    "CMD": "E_Stop",
+    "user_id": "Prakash_farms",
+    "solution_name": "Vatavaran Monitor"
+  }
+}
 ```
 
-Configure startup command:
+### 8) Forgot password by user_id
 
 ```bash
-az webapp config set \
-  --resource-group $RG_NAME \
-  --name $APP_NAME \
-  --startup-file "bash startup.sh"
-```
-
-Configure app settings:
-
-```bash
-az webapp config appsettings set \
-  --resource-group $RG_NAME \
-  --name $APP_NAME \
-  --settings \
-  MONGO_URI="<your-mongodb-connection-string>" \
-  APP_ENV="production" \
-  LOGIN_DB_NAME="User_Data" \
-  LOGIN_COLLECTION="user_login" \
-  JWT_SECRET_KEY="<strong-secret>" \
-  JWT_ALGORITHM="HS256" \
-  JWT_EXPIRES_MINUTES="60" \
-  JWT_ISSUER="device-login-api" \
-  JWT_AUDIENCE="device-login-clients" \
-  REALTIME_DB_NAME="realtime_data" \
-  RESET_PASSWORD_COLLECTION="reset_password" \
-  RESET_TOKEN_EXPIRY_MINUTES="15" \
-  PASSWORD_RESET_BASE_URL="https://$APP_NAME.azurewebsites.net" \
-  DEVICE_DATA_FETCH_LIMIT="100" \
-  MONGO_SERVER_SELECTION_TIMEOUT_MS="5000" \
-  MONGO_CONNECT_TIMEOUT_MS="10000" \
-  MONGO_SOCKET_TIMEOUT_MS="10000" \
-  CORS_ALLOWED_ORIGINS="https://your-frontend.example.com" \
-  SMTP_HOST="smtp.your-provider.com" \
-  SMTP_PORT="587" \
-  SMTP_USERNAME="contact@ezebuddies.com" \
-  SMTP_PASSWORD="<smtp-password>" \
-  SMTP_FROM_EMAIL="contact@ezebuddies.com" \
-  SMTP_USE_TLS="true" \
-  BCRYPT_ROUNDS="10"
-```
-
-Deploy code:
-
-```bash
-zip -r app.zip . -x ".venv/*" "__pycache__/*" ".git/*"
-az webapp deployment source config-zip \
-  --resource-group $RG_NAME \
-  --name $APP_NAME \
-  --src app.zip
-```
-
-Test after deploy:
-
-```bash
-curl https://$APP_NAME.azurewebsites.net/health
-curl -X POST https://$APP_NAME.azurewebsites.net/login \
+curl -X POST "$API_BASE/forgot-password" \
   -H "Content-Type: application/json" \
-  -d '{"user_id":"U1003","password":"your-password"}'
-curl -X GET https://$APP_NAME.azurewebsites.net/users/U1003/devices/data \
-  -H "Authorization: Bearer <access_token>"
+  -d '{
+    "user_id": "ritesh_farms"
+  }'
+```
+
+### 9) Forgot password by email
+
+```bash
+curl -X POST "$API_BASE/forgot-password" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "prashantkumar74887@gmail.com"
+  }'
+```
+
+### 10) Open reset page from token
+
+```bash
+curl -X GET "$API_BASE/reset-password?token=<RESET_TOKEN>"
+```
+
+### 11) Submit reset password form
+
+```bash
+curl -X POST "$API_BASE/reset-password" \
+  -H "Content-Type: application/x-www-form-urlencoded" \
+  --data-urlencode "token=<RESET_TOKEN>" \
+  --data-urlencode "new_password=NewPassword@123" \
+  --data-urlencode "confirm_password=NewPassword@123"
+```
+
+## Environment variables (summary)
+
+```bash
+MONGO_URI=
+APP_ENV=production
+
+LOGIN_DB_NAME=User_Data
+LOGIN_COLLECTION=user_login
+REALTIME_DB_NAME=realtime_data
+
+JWT_SECRET_KEY=
+JWT_ALGORITHM=HS256
+JWT_EXPIRES_MINUTES=86400
+JWT_ISSUER=device-login-api
+JWT_AUDIENCE=device-login-clients
+
+RESET_PASSWORD_COLLECTION=reset_password
+RESET_TOKEN_EXPIRY_MINUTES=15
+PASSWORD_RESET_BASE_URL=https://api.ezebuddies.com
+
+SMTP_HOST=smtp.hostinger.com
+SMTP_PORT=465
+SMTP_USERNAME=contact@ezebuddies.com
+SMTP_PASSWORD=
+SMTP_FROM_EMAIL=contact@ezebuddies.com
+SMTP_USE_TLS=false
+SMTP_USE_SSL=true
+
+MQTT_HOST=broker.emqx.io
+MQTT_PORT=1883
+MQTT_USERNAME=EzeBuddies_device
+MQTT_PASSWORD=EzeBuddies@2025
+MQTT_CLIENT_ID=ezebuddies-backend
+MQTT_KEEPALIVE=60
+MQTT_QOS=1
 ```
 
 ## Notes
 
-- Free plan (`F1`) sleeps when idle, so first request can be slow.
-- Store a real bcrypt hash in `password_hash`.
-- Use a strong `JWT_SECRET_KEY`.
-- Set `APP_ENV=production` on Azure; app will fail startup if using default JWT secret in production.
-- Login API reads from `LOGIN_DB_NAME` and `LOGIN_COLLECTION`.
-- Device data API reads from `REALTIME_DB_NAME`, with collection name equal to `user_id`.
-- Reset tokens are stored in `User_Data.reset_password` and deleted after successful reset.
-
+- Login response returns `solutions` (not `devices`) at top level.
+- `/users/{user_id}/devices/data`, `/planner`, `/change_relay_state`, and `/Estop` require `Authorization: Bearer <token>`.
+- For protected routes, `user_id` in payload/path must match JWT subject.
 
 
 
