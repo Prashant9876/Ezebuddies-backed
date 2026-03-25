@@ -16,6 +16,7 @@ API_BASE="https://api.ezebuddies.com"
 - `POST /planner` (JWT required)
 - `POST /change_relay_state` (JWT required)
 - `POST /Estop` (JWT required)
+- `POST /SOP_data` (JWT required)
 - `POST /forgot-password`
 - `GET /reset-password?token=...`
 - `POST /reset-password`
@@ -169,6 +170,20 @@ curl -X POST "$API_BASE/forgot-password" \
   }'
 ```
 
+### 8.1) SOP data for one or more crops
+
+Reads from `SOP_DB_NAME.SOP_COLLECTION_NAME` (default: `User_Data.Crop_SOP`).
+
+```bash
+curl -X POST "$API_BASE/SOP_data" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "user_id": "Prakash_farms",
+    "crop_names": ["Capsicum", "Tomato", "Cucumber"]
+  }'
+```
+
 ### 9) Forgot password by email
 
 ```bash
@@ -237,7 +252,6 @@ MQTT_QOS=1
 - Login response returns `solutions` (not `devices`) at top level.
 - `/users/{user_id}/devices/data`, `/planner`, `/change_relay_state`, and `/Estop` require `Authorization: Bearer <token>`.
 - For protected routes, `user_id` in payload/path must match JWT subject.
-
 
 
 
