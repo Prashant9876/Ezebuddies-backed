@@ -13,6 +13,7 @@ class Settings:
     jwt_issuer: str = os.getenv("JWT_ISSUER", "device-login-api")
     jwt_audience: str = os.getenv("JWT_AUDIENCE", "device-login-clients")
     realtime_db_name: str = os.getenv("REALTIME_DB_NAME", "realtime_data")
+    planner_collection_name: str = os.getenv("PLANNER_COLLECTION_NAME", "planner")
     device_data_fetch_limit: int = int(os.getenv("DEVICE_DATA_FETCH_LIMIT", "100"))
     reset_password_collection: str = os.getenv(
         "RESET_PASSWORD_COLLECTION", "reset_password"
@@ -35,6 +36,13 @@ class Settings:
     mongo_connect_timeout_ms: int = int(os.getenv("MONGO_CONNECT_TIMEOUT_MS", "10000"))
     mongo_socket_timeout_ms: int = int(os.getenv("MONGO_SOCKET_TIMEOUT_MS", "10000"))
     cors_allowed_origins_raw: str = os.getenv("CORS_ALLOWED_ORIGINS", "*")
+    mqtt_host: str = os.getenv("MQTT_HOST", "")
+    mqtt_port: int = int(os.getenv("MQTT_PORT", "1883"))
+    mqtt_username: str = os.getenv("MQTT_USERNAME", "")
+    mqtt_password: str = os.getenv("MQTT_PASSWORD", "")
+    mqtt_client_id: str = os.getenv("MQTT_CLIENT_ID", "ezebuddies-backend")
+    mqtt_keepalive: int = int(os.getenv("MQTT_KEEPALIVE", "60"))
+    mqtt_qos: int = int(os.getenv("MQTT_QOS", "1"))
 
     def validate(self) -> None:
         if not self.mongo_uri:
