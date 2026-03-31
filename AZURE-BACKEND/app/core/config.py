@@ -13,6 +13,10 @@ class Settings:
     jwt_issuer: str = os.getenv("JWT_ISSUER", "device-login-api")
     jwt_audience: str = os.getenv("JWT_AUDIENCE", "device-login-clients")
     realtime_db_name: str = os.getenv("REALTIME_DB_NAME", "realtime_data")
+    historical_db_name: str = os.getenv("HISTORICAL_DB_NAME", "IoT_datas")
+    historical_collection_name: str = os.getenv(
+        "HISTORICAL_COLLECTION_NAME", "Sensors"
+    )
     sop_db_name: str = os.getenv("SOP_DB_NAME", "User_Data")
     sop_collection_name: str = os.getenv("SOP_COLLECTION_NAME", "Crop_SOP")
     planner_collection_name: str = os.getenv(

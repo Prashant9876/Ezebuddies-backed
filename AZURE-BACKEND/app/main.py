@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from app.api.routes.auth import router as auth_router
 from app.api.routes.control import router as control_router
 from app.api.routes.devices import router as devices_router
+from app.api.routes.historical import router as historical_router
 from app.api.routes.password_reset import router as password_reset_router
 from app.api.routes.planner import router as planner_router
 from app.api.routes.sop import router as sop_router
@@ -34,6 +35,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(control_router)
 app.include_router(devices_router)
+app.include_router(historical_router)
 app.include_router(password_reset_router)
 app.include_router(planner_router)
 app.include_router(sop_router)
