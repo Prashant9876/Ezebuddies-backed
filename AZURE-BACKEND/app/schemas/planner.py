@@ -56,6 +56,10 @@ class SinchaiSchedule(BaseModel):
     valves: list[str]
     days: list[str]
     enabled: bool
+    ec_lower_limit: float
+    ec_upper_limit: float
+    ph_lower_limit: float
+    ph_upper_limit: float
 
 
 class UpdateSinchaiPlannerRequest(BaseModel):

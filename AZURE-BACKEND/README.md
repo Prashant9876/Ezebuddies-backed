@@ -152,7 +152,11 @@ curl -X POST "$API_BASE/update_sinchai_planer" \
         "irrigation_duration_min": 20,
         "valves": ["Valve 1", "Valve 3"],
         "days": ["Mon", "Wed", "Fri"],
-        "enabled": true
+        "enabled": true,
+        "ec_lower_limit": 1.2,
+        "ec_upper_limit": 2.0,
+        "ph_lower_limit": 5.8,
+        "ph_upper_limit": 6.2
       },
       {
         "schedule_no": 3,
@@ -161,7 +165,11 @@ curl -X POST "$API_BASE/update_sinchai_planer" \
         "irrigation_duration_min": 10,
         "valves": ["Valve 4"],
         "days": ["Sun"],
-        "enabled": false
+        "enabled": false,
+        "ec_lower_limit": 1.2,
+        "ec_upper_limit": 2.0,
+        "ph_lower_limit": 5.8,
+        "ph_upper_limit": 6.2
       }
     ]
   }'
@@ -176,7 +184,21 @@ Sample success response:
   "section": "user_sinchai_planner",
   "mode": "Manual",
   "No_of_valves": 4,
-  "schedules": [],
+  "schedules": [
+    {
+      "schedule_no": 1,
+      "schedule_name": "Morning Irrigation",
+      "start_time": "06:00",
+      "irrigation_duration_min": 20,
+      "valves": ["Valve 1", "Valve 3"],
+      "days": ["Mon", "Wed", "Fri"],
+      "enabled": true,
+      "ec_lower_limit": 1.2,
+      "ec_upper_limit": 2.0,
+      "ph_lower_limit": 5.8,
+      "ph_upper_limit": 6.2
+    }
+  ],
   "updated_count": 1,
   "added_count": 1
 }
@@ -377,7 +399,6 @@ MQTT_QOS=1
 - Login response returns `solutions` (not `devices`) at top level.
 - `/users/{user_id}/devices/data`, `/planner`, `/get_sinchai_planer`, `/update_sinchai_planer`, `/historical_data`, `/change_relay_state`, and `/Estop` require `Authorization: Bearer <token>`.
 - For protected routes, `user_id` in payload/path must match JWT subject.
-
 
 
 
