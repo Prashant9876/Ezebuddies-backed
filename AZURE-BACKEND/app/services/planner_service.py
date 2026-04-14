@@ -226,12 +226,19 @@ async def get_sinchai_planner(
             no_of_valves_value = int(no_of_valves_value)
         except Exception:
             no_of_valves_value = 0
+    fertigation_time_min_value = plan_doc.get("fertigation_time_min", 0)
+    if not isinstance(fertigation_time_min_value, int):
+        try:
+            fertigation_time_min_value = int(fertigation_time_min_value)
+        except Exception:
+            fertigation_time_min_value = 0
 
     return SinchaiPlannerResponse(
         user_id=user_id,
         farm_id=farm_id_value,
         section=section,
         No_of_valves=no_of_valves_value,
+        fertigation_time_min=fertigation_time_min_value,
         mode=mode_value,
         schedules=[_serialize_mongo_value(schedule) for schedule in schedules],
     )
@@ -306,6 +313,8 @@ async def update_sinchai_planner(
         }
         if payload.No_of_valves is not None:
             update_fields["No_of_valves"] = payload.No_of_valves
+        if payload.fertigation_time_min is not None:
+            update_fields["fertigation_time_min"] = payload.fertigation_time_min
 
         await collection.update_one({"_id": existing_doc["_id"]}, {"$set": update_fields})
     else:
@@ -319,6 +328,8 @@ async def update_sinchai_planner(
         }
         if payload.No_of_valves is not None:
             doc_to_insert["No_of_valves"] = payload.No_of_valves
+        if payload.fertigation_time_min is not None:
+            doc_to_insert["fertigation_time_min"] = payload.fertigation_time_min
         await collection.insert_one(doc_to_insert)
 
     latest_doc = await collection.find_one({"user_id": payload.user_id}) or {}
@@ -331,6 +342,12 @@ async def update_sinchai_planner(
             no_of_valves_value = int(no_of_valves_value)
         except Exception:
             no_of_valves_value = 0
+    fertigation_time_min_value = latest_doc.get("fertigation_time_min", 0)
+    if not isinstance(fertigation_time_min_value, int):
+        try:
+            fertigation_time_min_value = int(fertigation_time_min_value)
+        except Exception:
+            fertigation_time_min_value = 0
 
     schedules_value = latest_doc.get("schedules", [])
     if not isinstance(schedules_value, list):
@@ -342,6 +359,7 @@ async def update_sinchai_planner(
         section=section,
         mode=mode_value,
         No_of_valves=no_of_valves_value,
+        fertigation_time_min=fertigation_time_min_value,
         schedules=[_serialize_mongo_value(schedule) for schedule in schedules_value],
         updated_count=updated_count,
         added_count=added_count,
