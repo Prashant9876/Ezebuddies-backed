@@ -37,3 +37,11 @@ class PlannerDeviceUpdateResponse(BaseModel):
     updated_device: dict[str, Any]
     sop_data: Optional[dict[str, Any]] = None
     mqtt_topic: Optional[str] = None
+
+
+class SinchaiPlannerResponse(BaseModel):
+    user_id: str
+    farm_id: str
+    section: str
+    mode: str
+    schedules: list[dict[str, Any]]

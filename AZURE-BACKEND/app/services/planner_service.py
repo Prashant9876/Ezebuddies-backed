@@ -12,6 +12,7 @@ from app.schemas.planner import (
     PlannerDeviceUpdateResponse,
     PlannerRequest,
     PlannerResponse,
+    SinchaiPlannerResponse,
 )
 from app.services.mqtt_service import mqtt_publisher
 
@@ -179,4 +180,49 @@ async def update_planner_device(
         updated_device=updated_device,
         sop_data=sop_data,
         mqtt_topic=mqtt_topic,
+    )
+
+
+async def get_sinchai_planner(
+    token_type: str, user_id: str, section: str, token_user_id: str
+) -> SinchaiPlannerResponse:
+    if token_type.lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="token_type must be bearer",
+        )
+
+    if token_user_id != user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can access only your own sinchai planner data",
+        )
+
+    plan_doc = await _find_user_plan_doc(section=section, user_id=user_id)
+    if not plan_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Sinchai planner data not found for this user in requested section",
+        )
+
+    schedules = plan_doc.get("schedules", [])
+    if not isinstance(schedules, list):
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Sinchai planner format is invalid: schedules is missing",
+        )
+
+    mode_value = plan_doc.get("mode", "")
+    if not isinstance(mode_value, str):
+        mode_value = str(mode_value)
+    farm_id_value = plan_doc.get("farm_id", "")
+    if not isinstance(farm_id_value, str):
+        farm_id_value = str(farm_id_value)
+
+    return SinchaiPlannerResponse(
+        user_id=user_id,
+        farm_id=farm_id_value,
+        section=section,
+        mode=mode_value,
+        schedules=[_serialize_mongo_value(schedule) for schedule in schedules],
     )
