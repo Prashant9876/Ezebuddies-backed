@@ -251,7 +251,10 @@ async def update_sinchai_planner(
     collection = mongo_client[settings.login_db_name][section]
     existing_doc = await collection.find_one({"user_id": payload.user_id})
 
-    incoming_schedules = [_serialize_mongo_value(item.model_dump()) for item in payload.schedules]
+    incoming_schedules = [
+        _serialize_mongo_value(item.model_dump(exclude_none=True))
+        for item in payload.schedules
+    ]
     updated_count = 0
     added_count = 0
 

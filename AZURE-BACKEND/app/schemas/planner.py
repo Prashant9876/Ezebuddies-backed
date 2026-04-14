@@ -53,6 +53,7 @@ class SinchaiSchedule(BaseModel):
     schedule_name: str
     start_time: str
     irrigation_duration_min: int
+    fertigation_time_min: Optional[int] = None
     valves: list[str]
     days: list[str]
     enabled: bool

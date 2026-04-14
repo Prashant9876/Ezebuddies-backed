@@ -126,6 +126,7 @@ Sample success response:
       "schedule_name": "Morning Irrigation Updated",
       "start_time": "06:30",
       "irrigation_duration_min": 25,
+      "fertigation_time_min": 12,
       "valves": ["Valve 1", "Valve 2", "Valve 3"],
       "days": ["Mon", "Tue", "Wed", "Fri"],
       "enabled": true
@@ -150,6 +151,7 @@ curl -X POST "$API_BASE/update_sinchai_planer" \
         "schedule_name": "Morning Irrigation",
         "start_time": "06:00",
         "irrigation_duration_min": 20,
+        "fertigation_time_min": 10,
         "valves": ["Valve 1", "Valve 3"],
         "days": ["Mon", "Wed", "Fri"],
         "enabled": true,
@@ -163,6 +165,7 @@ curl -X POST "$API_BASE/update_sinchai_planer" \
         "schedule_name": "Night Irrigation",
         "start_time": "22:00",
         "irrigation_duration_min": 10,
+        "fertigation_time_min": 5,
         "valves": ["Valve 4"],
         "days": ["Sun"],
         "enabled": false,
@@ -190,6 +193,7 @@ Sample success response:
       "schedule_name": "Morning Irrigation",
       "start_time": "06:00",
       "irrigation_duration_min": 20,
+      "fertigation_time_min": 10,
       "valves": ["Valve 1", "Valve 3"],
       "days": ["Mon", "Wed", "Fri"],
       "enabled": true,
@@ -399,6 +403,5 @@ MQTT_QOS=1
 - Login response returns `solutions` (not `devices`) at top level.
 - `/users/{user_id}/devices/data`, `/planner`, `/get_sinchai_planer`, `/update_sinchai_planer`, `/historical_data`, `/change_relay_state`, and `/Estop` require `Authorization: Bearer <token>`.
 - For protected routes, `user_id` in payload/path must match JWT subject.
-
 
 
