@@ -41,5 +41,7 @@ async def login_user(payload: LoginRequest) -> LoginResponse:
         user_id=auth_user_id,
         name=user.name,
         email=user.email,
+        phone=user.phone or "",
+        farm_location=user.farm_location or "",
         solutions=[solution.model_dump() for solution in user.get_solutions()],
     )

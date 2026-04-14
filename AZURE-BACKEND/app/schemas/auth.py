@@ -29,4 +29,6 @@ class LoginResponse(BaseModel):
     user_id: str
     name: str
     email: str
+    phone: str = Field(default="", serialization_alias="Phone")
+    farm_location: str = Field(default="", serialization_alias="Farm_location")
     solutions: list[SolutionResponse]

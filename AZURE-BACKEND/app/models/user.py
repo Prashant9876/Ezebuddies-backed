@@ -24,6 +24,8 @@ class User(BaseModel):
     user_id: Optional[str] = None
     name: str
     email: str
+    phone: Optional[str] = Field(default="", validation_alias="Phone")
+    farm_location: Optional[str] = Field(default="", validation_alias="Farm_location")
     password_hash: str
     solutions: list[Solution] = Field(default_factory=list)
     devices: list[Device] = Field(default_factory=list)

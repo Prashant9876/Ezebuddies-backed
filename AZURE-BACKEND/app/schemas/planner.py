@@ -45,6 +45,7 @@ class SinchaiPlannerResponse(BaseModel):
     section: str
     No_of_valves: int = 0
     fertigation_time_min: int = 0
+    manual_log: Optional[dict[str, Any]] = None
     mode: str
     schedules: list[dict[str, Any]]
 

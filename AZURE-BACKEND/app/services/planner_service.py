@@ -232,6 +232,11 @@ async def get_sinchai_planner(
             fertigation_time_min_value = int(fertigation_time_min_value)
         except Exception:
             fertigation_time_min_value = 0
+    manual_log_value = plan_doc.get("manual_log")
+    if isinstance(manual_log_value, dict):
+        manual_log_value = _serialize_mongo_value(manual_log_value)
+    else:
+        manual_log_value = None
 
     return SinchaiPlannerResponse(
         user_id=user_id,
@@ -239,6 +244,7 @@ async def get_sinchai_planner(
         section=section,
         No_of_valves=no_of_valves_value,
         fertigation_time_min=fertigation_time_min_value,
+        manual_log=manual_log_value,
         mode=mode_value,
         schedules=[_serialize_mongo_value(schedule) for schedule in schedules],
     )
@@ -270,41 +276,22 @@ async def update_sinchai_planner(
         if not isinstance(existing_schedules, list):
             existing_schedules = []
 
-        existing_by_no: dict[str, dict[str, Any]] = {}
-        for schedule in existing_schedules:
-            key = str(schedule.get("schedule_no", "")).strip()
-            if key:
-                existing_by_no[key] = schedule
+        existing_keys = {
+            str(schedule.get("schedule_no", "")).strip()
+            for schedule in existing_schedules
+            if str(schedule.get("schedule_no", "")).strip()
+        }
+        incoming_keys = {
+            str(schedule.get("schedule_no", "")).strip()
+            for schedule in incoming_schedules
+            if str(schedule.get("schedule_no", "")).strip()
+        }
+        updated_count = len(existing_keys.intersection(incoming_keys))
+        added_count = len(incoming_keys - existing_keys)
 
-        incoming_by_no: dict[str, dict[str, Any]] = {}
-        incoming_order: list[str] = []
-        for schedule in incoming_schedules:
-            key = str(schedule.get("schedule_no", "")).strip()
-            if not key:
-                continue
-            incoming_by_no[key] = schedule
-            incoming_order.append(key)
-
-        merged_schedules: list[dict[str, Any]] = []
-        used_keys: set[str] = set()
-
-        for schedule in existing_schedules:
-            key = str(schedule.get("schedule_no", "")).strip()
-            if key and key in incoming_by_no:
-                merged_schedules.append(incoming_by_no[key])
-                updated_count += 1
-                used_keys.add(key)
-            else:
-                merged_schedules.append(schedule)
-                if key:
-                    used_keys.add(key)
-
-        for key in incoming_order:
-            if key in used_keys:
-                continue
-            merged_schedules.append(incoming_by_no[key])
-            added_count += 1
-            used_keys.add(key)
+        # Schedules are treated as a full replacement list:
+        # if a schedule is omitted in payload, it is deleted from DB.
+        merged_schedules = incoming_schedules
 
         update_fields: dict[str, Any] = {
             "mode": payload.mode,
