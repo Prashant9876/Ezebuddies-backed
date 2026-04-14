@@ -6,6 +6,8 @@ from app.schemas.planner import (
     PlannerDeviceUpdateResponse,
     PlannerRequest,
     PlannerResponse,
+    ResetManualLogRequest,
+    ResetManualLogResponse,
     SinchaiPlannerResponse,
     UpdateSinchaiPlannerRequest,
     UpdateSinchaiPlannerResponse,
@@ -13,6 +15,7 @@ from app.schemas.planner import (
 from app.services.planner_service import (
     get_planner_devices,
     get_sinchai_planner,
+    reset_manual_log,
     update_sinchai_planner,
     update_planner_device,
 )
@@ -58,3 +61,11 @@ async def update_sinchai_planer(
     token_user_id: str = Depends(get_current_user_id),
 ) -> UpdateSinchaiPlannerResponse:
     return await update_sinchai_planner(payload=payload, token_user_id=token_user_id)
+
+
+@router.post("/reset_manual_log", response_model=ResetManualLogResponse)
+async def reset_manual_log_api(
+    payload: ResetManualLogRequest,
+    token_user_id: str = Depends(get_current_user_id),
+) -> ResetManualLogResponse:
+    return await reset_manual_log(payload=payload, token_user_id=token_user_id)

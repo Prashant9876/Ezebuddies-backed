@@ -41,13 +41,13 @@ class PlannerDeviceUpdateResponse(BaseModel):
 
 class SinchaiPlannerResponse(BaseModel):
     user_id: str
-    farm_id: str
+    farm_id: Optional[str] = None
     section: str
-    No_of_valves: int = 0
-    fertigation_time_min: int = 0
+    No_of_valves: Optional[int] = None
+    fertigation_time_min: Optional[int] = None
     manual_log: Optional[dict[str, Any]] = None
-    mode: str
-    schedules: list[dict[str, Any]]
+    mode: Optional[str] = None
+    schedules: Optional[list[dict[str, Any]]] = None
 
 
 class SinchaiSchedule(BaseModel):
@@ -82,3 +82,15 @@ class UpdateSinchaiPlannerResponse(BaseModel):
     schedules: list[dict[str, Any]]
     updated_count: int
     added_count: int
+
+
+class ResetManualLogRequest(BaseModel):
+    user_id: str = Field(min_length=1)
+    farmid: str = Field(min_length=1)
+
+
+class ResetManualLogResponse(BaseModel):
+    message: str
+    user_id: str
+    farmid: str
+    manual_log: dict[str, Any]

@@ -12,6 +12,8 @@ from app.schemas.planner import (
     PlannerDeviceUpdateResponse,
     PlannerRequest,
     PlannerResponse,
+    ResetManualLogRequest,
+    ResetManualLogResponse,
     SinchaiPlannerResponse,
     UpdateSinchaiPlannerRequest,
     UpdateSinchaiPlannerResponse,
@@ -39,6 +41,22 @@ def _serialize_mongo_value(value: Any) -> Any:
         return [_serialize_mongo_value(item) for item in value]
     if isinstance(value, dict):
         return {key: _serialize_mongo_value(val) for key, val in value.items()}
+    return value
+
+
+def _nullify_zero_or_empty(value: Any) -> Any:
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)) and value == 0:
+        return None
+    if isinstance(value, str) and value.strip() == "":
+        return None
+    if isinstance(value, list):
+        if len(value) == 0:
+            return None
+        return [_nullify_zero_or_empty(item) for item in value]
+    if isinstance(value, dict):
+        return {key: _nullify_zero_or_empty(val) for key, val in value.items()}
     return value
 
 
@@ -238,15 +256,27 @@ async def get_sinchai_planner(
     else:
         manual_log_value = None
 
+    response_payload = {
+        "user_id": user_id,
+        "farm_id": farm_id_value,
+        "section": section,
+        "No_of_valves": no_of_valves_value,
+        "fertigation_time_min": fertigation_time_min_value,
+        "manual_log": manual_log_value,
+        "mode": mode_value,
+        "schedules": [_serialize_mongo_value(schedule) for schedule in schedules],
+    }
+    response_payload = _nullify_zero_or_empty(response_payload)
+
     return SinchaiPlannerResponse(
-        user_id=user_id,
-        farm_id=farm_id_value,
-        section=section,
-        No_of_valves=no_of_valves_value,
-        fertigation_time_min=fertigation_time_min_value,
-        manual_log=manual_log_value,
-        mode=mode_value,
-        schedules=[_serialize_mongo_value(schedule) for schedule in schedules],
+        user_id=response_payload["user_id"],
+        farm_id=response_payload["farm_id"],
+        section=response_payload["section"],
+        No_of_valves=response_payload["No_of_valves"],
+        fertigation_time_min=response_payload["fertigation_time_min"],
+        manual_log=response_payload["manual_log"],
+        mode=response_payload["mode"],
+        schedules=response_payload["schedules"],
     )
 
 
@@ -350,4 +380,45 @@ async def update_sinchai_planner(
         schedules=[_serialize_mongo_value(schedule) for schedule in schedules_value],
         updated_count=updated_count,
         added_count=added_count,
+    )
+
+
+async def reset_manual_log(
+    payload: ResetManualLogRequest, token_user_id: str
+) -> ResetManualLogResponse:
+    if token_user_id != payload.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can reset manual log only for your own account",
+        )
+
+    section = "user_sinchai_planner"
+    mongo_client = get_client()
+    collection = mongo_client[settings.login_db_name][section]
+
+    user_doc = await collection.find_one({"user_id": payload.user_id})
+    if not user_doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Sinchai planner data not found for this user",
+        )
+
+    db_farm_id = user_doc.get("farm_id")
+    if str(db_farm_id) != str(payload.farmid):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Farm ID does not match for this user",
+        )
+
+    reset_value = {"timestamp": 0, "duration_min": 0, "valves": []}
+    await collection.update_one(
+        {"_id": user_doc["_id"]},
+        {"$set": {"manual_log": reset_value, "updated_at": datetime.utcnow()}},
+    )
+
+    return ResetManualLogResponse(
+        message="manual_log reset successfully",
+        user_id=payload.user_id,
+        farmid=str(payload.farmid),
+        manual_log=reset_value,
     )
