@@ -14,6 +14,9 @@ API_BASE="https://api.ezebuddies.com"
 - `POST /login`
 - `GET /users/{user_id}/devices/data` (JWT required)
 - `POST /planner` (JWT required)
+- `GET /get_sinchai_planer` (JWT required)
+- `POST /update_sinchai_planer` (JWT required)
+- `POST /historical_data` (JWT required)
 - `POST /change_relay_state` (JWT required)
 - `POST /Estop` (JWT required)
 - `POST /SOP_data` (JWT required)
@@ -96,6 +99,126 @@ curl -X POST "$API_BASE/planner" \
     "user_id": "Prakash_farms",
     "section": "user_vatavaran_planner"
   }'
+```
+
+### 5.1) Get sinchai planner
+
+```bash
+curl -G "$API_BASE/get_sinchai_planer" \
+  -H "Authorization: Bearer $TOKEN" \
+  --data-urlencode "token_type=bearer" \
+  --data-urlencode "user_id=Prakash_farms" \
+  --data-urlencode "section=user_sinchai_planner"
+```
+
+Sample success response:
+
+```json
+{
+  "user_id": "Prakash_farms",
+  "farm_id": "1",
+  "section": "user_sinchai_planner",
+  "No_of_valves": 4,
+  "mode": "Manual",
+  "schedules": [
+    {
+      "schedule_no": 1,
+      "schedule_name": "Morning Irrigation Updated",
+      "start_time": "06:30",
+      "irrigation_duration_min": 25,
+      "valves": ["Valve 1", "Valve 2", "Valve 3"],
+      "days": ["Mon", "Tue", "Wed", "Fri"],
+      "enabled": true
+    }
+  ]
+}
+```
+
+### 5.2) Update sinchai planner (update existing + add new schedules)
+
+```bash
+curl -X POST "$API_BASE/update_sinchai_planer" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "user_id": "Prakash_farms",
+    "mode": "Auto",
+    "No_of_valves": 4,
+    "schedules": [
+      {
+        "schedule_no": 1,
+        "schedule_name": "Morning Irrigation",
+        "start_time": "06:00",
+        "irrigation_duration_min": 20,
+        "valves": ["Valve 1", "Valve 3"],
+        "days": ["Mon", "Wed", "Fri"],
+        "enabled": true
+      },
+      {
+        "schedule_no": 3,
+        "schedule_name": "Night Irrigation",
+        "start_time": "22:00",
+        "irrigation_duration_min": 10,
+        "valves": ["Valve 4"],
+        "days": ["Sun"],
+        "enabled": false
+      }
+    ]
+  }'
+```
+
+Sample success response:
+
+```json
+{
+  "message": "Sinchai planner updated successfully",
+  "user_id": "Prakash_farms",
+  "section": "user_sinchai_planner",
+  "mode": "Manual",
+  "No_of_valves": 4,
+  "schedules": [],
+  "updated_count": 1,
+  "added_count": 1
+}
+```
+
+### 5.3) Historical data
+
+```bash
+curl -X POST "$API_BASE/historical_data" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "user_id": "Prakash_farms",
+    "device_id": "IFTHC1180000001",
+    "device_name": "Enviroment_Intel",
+    "time_range": {
+      "value": 1
+    }
+  }'
+```
+
+Sample success response:
+
+```json
+{
+  "user_id": "Prakash_farms",
+  "device_id": "IFTHC1180000001",
+  "device_name": "Enviroment_Intel",
+  "time_range_days": 1.0,
+  "bucket_minutes": 60,
+  "total_points": 25,
+  "data": [
+    {
+      "timestamp": "2026-03-30T10:00:00+00:00",
+      "payload": {
+        "Humidity": 69.154,
+        "Etemp": 31.115,
+        "CO2": 83.077
+      }
+    }
+  ]
+}
 ```
 
 ### 6) Change relay state (MQTT publish)
@@ -219,6 +342,8 @@ APP_ENV=production
 LOGIN_DB_NAME=User_Data
 LOGIN_COLLECTION=user_login
 REALTIME_DB_NAME=realtime_data
+HISTORICAL_DB_NAME=IoT_datas
+HISTORICAL_COLLECTION_NAME=Sensors
 
 JWT_SECRET_KEY=
 JWT_ALGORITHM=HS256
@@ -250,9 +375,8 @@ MQTT_QOS=1
 ## Notes
 
 - Login response returns `solutions` (not `devices`) at top level.
-- `/users/{user_id}/devices/data`, `/planner`, `/change_relay_state`, and `/Estop` require `Authorization: Bearer <token>`.
+- `/users/{user_id}/devices/data`, `/planner`, `/get_sinchai_planer`, `/update_sinchai_planer`, `/historical_data`, `/change_relay_state`, and `/Estop` require `Authorization: Bearer <token>`.
 - For protected routes, `user_id` in payload/path must match JWT subject.
-
 
 
 

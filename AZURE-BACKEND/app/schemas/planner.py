@@ -43,5 +43,34 @@ class SinchaiPlannerResponse(BaseModel):
     user_id: str
     farm_id: str
     section: str
+    No_of_valves: int = 0
     mode: str
     schedules: list[dict[str, Any]]
+
+
+class SinchaiSchedule(BaseModel):
+    schedule_no: int
+    schedule_name: str
+    start_time: str
+    irrigation_duration_min: int
+    valves: list[str]
+    days: list[str]
+    enabled: bool
+
+
+class UpdateSinchaiPlannerRequest(BaseModel):
+    user_id: str = Field(min_length=1)
+    mode: str = Field(min_length=1)
+    schedules: list[SinchaiSchedule] = Field(min_length=1)
+    No_of_valves: Optional[int] = None
+
+
+class UpdateSinchaiPlannerResponse(BaseModel):
+    message: str
+    user_id: str
+    section: str
+    mode: str
+    No_of_valves: int = 0
+    schedules: list[dict[str, Any]]
+    updated_count: int
+    added_count: int

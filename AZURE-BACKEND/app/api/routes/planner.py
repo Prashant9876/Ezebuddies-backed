@@ -7,10 +7,13 @@ from app.schemas.planner import (
     PlannerRequest,
     PlannerResponse,
     SinchaiPlannerResponse,
+    UpdateSinchaiPlannerRequest,
+    UpdateSinchaiPlannerResponse,
 )
 from app.services.planner_service import (
     get_planner_devices,
     get_sinchai_planner,
+    update_sinchai_planner,
     update_planner_device,
 )
 
@@ -47,3 +50,11 @@ async def get_sinchai_planer(
         section=section,
         token_user_id=token_user_id,
     )
+
+
+@router.post("/update_sinchai_planer", response_model=UpdateSinchaiPlannerResponse)
+async def update_sinchai_planer(
+    payload: UpdateSinchaiPlannerRequest,
+    token_user_id: str = Depends(get_current_user_id),
+) -> UpdateSinchaiPlannerResponse:
+    return await update_sinchai_planner(payload=payload, token_user_id=token_user_id)

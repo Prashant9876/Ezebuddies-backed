@@ -13,6 +13,8 @@ from app.schemas.planner import (
     PlannerRequest,
     PlannerResponse,
     SinchaiPlannerResponse,
+    UpdateSinchaiPlannerRequest,
+    UpdateSinchaiPlannerResponse,
 )
 from app.services.mqtt_service import mqtt_publisher
 
@@ -218,11 +220,126 @@ async def get_sinchai_planner(
     farm_id_value = plan_doc.get("farm_id", "")
     if not isinstance(farm_id_value, str):
         farm_id_value = str(farm_id_value)
+    no_of_valves_value = plan_doc.get("No_of_valves", plan_doc.get("no_of_valves", 0))
+    if not isinstance(no_of_valves_value, int):
+        try:
+            no_of_valves_value = int(no_of_valves_value)
+        except Exception:
+            no_of_valves_value = 0
 
     return SinchaiPlannerResponse(
         user_id=user_id,
         farm_id=farm_id_value,
         section=section,
+        No_of_valves=no_of_valves_value,
         mode=mode_value,
         schedules=[_serialize_mongo_value(schedule) for schedule in schedules],
+    )
+
+
+async def update_sinchai_planner(
+    payload: UpdateSinchaiPlannerRequest, token_user_id: str
+) -> UpdateSinchaiPlannerResponse:
+    if token_user_id != payload.user_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can update only your own sinchai planner data",
+        )
+
+    section = "user_sinchai_planner"
+    mongo_client = get_client()
+    collection = mongo_client[settings.login_db_name][section]
+    existing_doc = await collection.find_one({"user_id": payload.user_id})
+
+    incoming_schedules = [_serialize_mongo_value(item.model_dump()) for item in payload.schedules]
+    updated_count = 0
+    added_count = 0
+
+    if existing_doc:
+        existing_schedules = existing_doc.get("schedules", [])
+        if not isinstance(existing_schedules, list):
+            existing_schedules = []
+
+        existing_by_no: dict[str, dict[str, Any]] = {}
+        for schedule in existing_schedules:
+            key = str(schedule.get("schedule_no", "")).strip()
+            if key:
+                existing_by_no[key] = schedule
+
+        incoming_by_no: dict[str, dict[str, Any]] = {}
+        incoming_order: list[str] = []
+        for schedule in incoming_schedules:
+            key = str(schedule.get("schedule_no", "")).strip()
+            if not key:
+                continue
+            incoming_by_no[key] = schedule
+            incoming_order.append(key)
+
+        merged_schedules: list[dict[str, Any]] = []
+        used_keys: set[str] = set()
+
+        for schedule in existing_schedules:
+            key = str(schedule.get("schedule_no", "")).strip()
+            if key and key in incoming_by_no:
+                merged_schedules.append(incoming_by_no[key])
+                updated_count += 1
+                used_keys.add(key)
+            else:
+                merged_schedules.append(schedule)
+                if key:
+                    used_keys.add(key)
+
+        for key in incoming_order:
+            if key in used_keys:
+                continue
+            merged_schedules.append(incoming_by_no[key])
+            added_count += 1
+            used_keys.add(key)
+
+        update_fields: dict[str, Any] = {
+            "mode": payload.mode,
+            "schedules": merged_schedules,
+            "updated_at": datetime.utcnow(),
+        }
+        if payload.No_of_valves is not None:
+            update_fields["No_of_valves"] = payload.No_of_valves
+
+        await collection.update_one({"_id": existing_doc["_id"]}, {"$set": update_fields})
+    else:
+        added_count = len(incoming_schedules)
+        doc_to_insert: dict[str, Any] = {
+            "user_id": payload.user_id,
+            "mode": payload.mode,
+            "schedules": incoming_schedules,
+            "created_at": datetime.utcnow(),
+            "updated_at": datetime.utcnow(),
+        }
+        if payload.No_of_valves is not None:
+            doc_to_insert["No_of_valves"] = payload.No_of_valves
+        await collection.insert_one(doc_to_insert)
+
+    latest_doc = await collection.find_one({"user_id": payload.user_id}) or {}
+    mode_value = latest_doc.get("mode", payload.mode)
+    if not isinstance(mode_value, str):
+        mode_value = str(mode_value)
+    no_of_valves_value = latest_doc.get("No_of_valves", 0)
+    if not isinstance(no_of_valves_value, int):
+        try:
+            no_of_valves_value = int(no_of_valves_value)
+        except Exception:
+            no_of_valves_value = 0
+
+    schedules_value = latest_doc.get("schedules", [])
+    if not isinstance(schedules_value, list):
+        schedules_value = []
+
+    return UpdateSinchaiPlannerResponse(
+        message="Sinchai planner updated successfully",
+        user_id=payload.user_id,
+        section=section,
+        mode=mode_value,
+        No_of_valves=no_of_valves_value,
+        schedules=[_serialize_mongo_value(schedule) for schedule in schedules_value],
+        updated_count=updated_count,
+        added_count=added_count,
     )
